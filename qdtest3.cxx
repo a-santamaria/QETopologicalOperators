@@ -136,7 +136,7 @@ int main( int argc, char* argv[] )
     renderWindowInteractor->SetRenderWindow(renderWindow);
 
     renderer->AddActor(actor);
-    // renderer->SetBackground(.2, .3, .4);
+    renderer->SetBackground(.2, .3, .4);
 
 
     renderWindow->Render();
