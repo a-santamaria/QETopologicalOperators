@@ -89,50 +89,9 @@ int main( int argc, char* argv[] )
         vpoints->InsertPoint( idx, (itPoints->Value().GetDataPointer()));
     }
 
-    MeshType::FrontIterator it = mesh->BeginFront();
-    MeshType::CellsContainerPointer cells = mesh->GetCells();
 
     vtkSmartPointer<vtkCellArray> edgeCells = vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
-    for(; it != mesh->EndFront(); it++) {
-        //cout<<"------------------------------------"<<endl;
-        std::cout << " edge " << it.Value()->GetIdent();
-        std::cout << " origin " << it.Value()->GetOrigin();
-        std::cout << " dest" << it.Value()->GetDestination();
-        MeshType::CellIdentifier idFace = it.Value()->GetLeft();
-        PolygonType* face = dynamic_cast< PolygonType* >( cells->ElementAt( idFace ) );
-
-        if( face ) {
-            MeshType::QEType *qe = face->GetEdgeRingEntry();
-            MeshType::QEType *temp = qe;
-
-            unsigned int k = 0;
-            vtkSmartPointer<vtkTriangle> triangle =
-                vtkSmartPointer<vtkTriangle>::New();
-            int cont = 0;
-            do {
-
-                //std::cout <<temp->GetOrigin() << " ";
-                triangle->GetPointIds()->SetId( cont++, temp->GetOrigin() );
-                vtkLine *line = vtkLine::New();
-
-                line->GetPointIds()->SetId(0,(vtkIdType)(temp->GetOrigin()) );
-                line->GetPointIds()->SetId(1,(vtkIdType)(temp->GetDestination()));
-                edgeCells->InsertNextCell(line);
-
-                temp = temp->GetLnext();
-
-
-            } while(temp != qe);
-            //std::cout << std::endl;
-            triangles->InsertNextCell(triangle);
-
-
-        }
-        cout<< " id face " << idFace << endl << endl;
-        //cout<<"------------------------------------"<<endl;
-    }
-
 
     vtkSmartPointer<vtkPolyData> pd =
     vtkSmartPointer<vtkPolyData>::New();
@@ -183,33 +142,41 @@ int main( int argc, char* argv[] )
     renderWindow->Render();
     renderWindowInteractor->Start();
 
+    MeshType::FrontDualIterator itFace = mesh->BeginDualFront();
+
+    for( ; itFace != mesh->EndDualFront(); itFace++) {
+        std::cout << "face " << itFace.Value()->GetIdent() << std::endl;
 
 
-/*
-  MeshType::FrontIterator it= mesh->BeginFront();
+        vtkSmartPointer<vtkTriangle> triangle =
+          vtkSmartPointer<vtkTriangle>::New();
+        MeshType::QEType* qe = itFace.Value()->GetRot();
+        MeshType::QEType* temp = qe;
 
-  for(; it != mesh->EndFront(); it++) {
+        int cont = 0;
+        do {
 
-    cout<<"------------------------------------"<<endl;
-    cout << "origin " << it.Value()->GetOrigin() <<": ";
-    MeshType::PointType p = mesh->GetPoint( it.Value()->GetOrigin() );
-    itk::Vector<double, 3> v = p.GetVectorFromOrigin();
-    cout << v[0] << " " << v[1] << " " << v[2] << endl;
+            std::cout <<temp->GetOrigin() << " ";
+            triangle->GetPointIds()->SetId( cont++, temp->GetOrigin() );
+            vtkLine *line = vtkLine::New();
 
-    MeshType::CellIdentifier id = it.Value()->GetLeft();
+            line->GetPointIds()->SetId(0,(vtkIdType)(temp->GetOrigin()) );
+            line->GetPointIds()->SetId(1,(vtkIdType)(temp->GetDestination()));
+            edgeCells->InsertNextCell(line);
+
+            temp = temp->GetRnext();
 
 
-    cout << " dest " << it.Value()->GetDestination() << endl;
-    p = mesh->GetPoint( it.Value()->GetDestination() );
-    v = p.GetVectorFromOrigin();
-    cout << v[0] << " " << v[1] << " " << v[2] << endl;
+        } while(temp != qe);
+        std::cout << std::endl;
+        triangles->InsertNextCell(triangle);
 
-    cout<< " id face " << id << endl;
-    cout<<"------------------------------------"<<endl;
+        //renderWindow->Finalize ();
+        renderWindow->Render();
+        renderWindow->Start ();
 
-  }
-  //itk::QuadEdgeMeshBaseIterator< itk::QuadEdge >it (mesh);
+    }
 
-*/
+
   return EXIT_SUCCESS;
 }

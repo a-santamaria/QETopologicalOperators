@@ -8,8 +8,8 @@ find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
 
 
-add_executable(QETest MACOSX_BUNDLE qdtest3.cxx)
-add_executable(QETest2 MACOSX_BUNDLE qdtest2.cxx)
+add_executable(QETest qdtest3.cxx)
+add_executable(QETest2 qdtest2.cxx)
 
 
   target_link_libraries(QETest ${ITK_LIBRARIES})
