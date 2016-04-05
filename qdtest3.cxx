@@ -171,7 +171,7 @@ int main( int argc, char* argv[] )
         std::cout << std::endl;
         triangles->InsertNextCell(triangle);
 
-        //renderWindow->Finalize ();
+        renderWindow->Finalize ();
         renderWindow->Render();
         renderWindow->Start ();
 
