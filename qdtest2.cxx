@@ -28,6 +28,8 @@
 #include <vtkVertexGlyphFilter.h>
 #include <vtkTriangle.h>
 
+
+
 using namespace std;
 
 int main( int argc, char* argv[] )
@@ -39,10 +41,12 @@ int main( int argc, char* argv[] )
     typedef itk::QuadEdgeMeshPolygonCell< MeshType::CellType > PolygonType;
 
     MeshType::Pointer mesh = MeshType::New();
+    MeshType::Pointer copy = MeshType::New();
 
     typedef MeshType::PointsContainer         PointsContainer;
     typedef MeshType::PointsContainerPointer  PointsContainerPointer;
-    typedef itk::QuadEdge QEType;
+
+    typedef MeshType::PointIdentifier idP;
     PointsContainerPointer points = PointsContainer::New();
     points->Reserve( 100 );
 
@@ -65,6 +69,7 @@ int main( int argc, char* argv[] )
     }
 
   mesh->SetPoints( points );
+  copy->SetPoints( points );
 
   k = 0;
 
@@ -74,163 +79,93 @@ int main( int argc, char* argv[] )
       {
       mesh->AddFaceTriangle( k, k+1,  k+11 );
       mesh->AddFaceTriangle( k, k+11, k+10 );
+      copy->AddFaceTriangle( k, k+1,  k+11 );
+      copy->AddFaceTriangle( k, k+11, k+10 );
       k++;
       }
     k++;
     }
 
-/*  -------------------------------------------------------------------------------------------------
-
-     vtkSmartPointer<vtkPoints> vpoints = vtkSmartPointer<vtkPoints>::New();
-    MeshType::PointsContainer::Iterator itPoints = mesh->GetPoints()->Begin();
-
-    for( ; itPoints != mesh->GetPoints()->End(); ++itPoints)
-    {
-        // Get the point index from the point container iterator
-        int idx = itPoints->Index();
-        PointType ps = itPoints->Value().GetDataPointer();
-        vpoints->InsertPoint( idx, (itPoints->Value().GetDataPointer()));
-    }
-
-    MeshType::FrontIterator it = mesh->BeginFront();
-    MeshType::CellsContainerPointer cells = mesh->GetCells();
-
-    vtkSmartPointer<vtkCellArray> edgeCells = vtkSmartPointer<vtkCellArray>::New();
-    vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
-    for(; it != mesh->EndFront(); it++) {
-        //cout<<"------------------------------------"<<endl;
-        std::cout << " edge " << it.Value()->GetIdent();
-        std::cout << " origin " << it.Value()->GetOrigin();
-        std::cout << " dest" << it.Value()->GetDestination();
-        MeshType::CellIdentifier idFace = it.Value()->GetLeft();
-        PolygonType* face = dynamic_cast< PolygonType* >( cells->ElementAt( idFace ) );
-
-        if( face ) {
-            MeshType::QEType *qe = face->GetEdgeRingEntry();
-            MeshType::QEType *temp = qe;
-
-            unsigned int k = 0;
-            vtkSmartPointer<vtkTriangle> triangle =
-                vtkSmartPointer<vtkTriangle>::New();
-            int cont = 0;
-            do {
-
-                //std::cout <<temp->GetOrigin() << " ";
-                triangle->GetPointIds()->SetId( cont++, temp->GetOrigin() );
-                vtkLine *line = vtkLine::New();
-
-                line->GetPointIds()->SetId(0,(vtkIdType)(temp->GetOrigin()) );
-                line->GetPointIds()->SetId(1,(vtkIdType)(temp->GetDestination()));
-                edgeCells->InsertNextCell(line);
-
-                temp = temp->GetLnext();
-
-
-            } while(temp != qe);
-            //std::cout << std::endl;
-            triangles->InsertNextCell(triangle);
-
-
-        }
-        cout<< " id face " << idFace << endl << endl;
-        //cout<<"------------------------------------"<<endl;
-    }
-
-
-    vtkSmartPointer<vtkPolyData> pd =
-    vtkSmartPointer<vtkPolyData>::New();
-    pd->SetPoints(vpoints);
-    //pd->SetLines(edgeCells);
-    pd->SetPolys(triangles);
-
-    std::cout << "polys " << pd->GetNumberOfCells() << std::endl;
-
-    vtkSmartPointer<vtkVertexGlyphFilter> vertexFilter =
-        vtkSmartPointer<vtkVertexGlyphFilter>::New();
-    vertexFilter->SetInputData(pd);
-    vertexFilter->Update();
-
-    vtkSmartPointer<vtkPolyData> polyData =
-    vtkSmartPointer<vtkPolyData>::New();
-    polyData->ShallowCopy(vertexFilter->GetOutput());
-
-    polyData->SetPolys(triangles);
-
-    vtkSmartPointer<vtkPolyDataMapper> mapper =
-    vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputData(pd);
-
-
-    vtkSmartPointer<vtkActor> actor =
-      vtkSmartPointer<vtkActor>::New();
-    actor->SetMapper(mapper);
-    actor->GetProperty()->SetPointSize(10);
-
-
-    vtkSmartPointer<vtkRenderer> renderer =
-    vtkSmartPointer<vtkRenderer>::New();
-
-    vtkSmartPointer<vtkRenderWindow> renderWindow =
-    vtkSmartPointer<vtkRenderWindow>::New();
-    renderWindow->AddRenderer(renderer);
-    renderWindow->SetSize( 600, 600 );
-
-    vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor =
-    vtkSmartPointer<vtkRenderWindowInteractor>::New();
-    renderWindowInteractor->SetRenderWindow(renderWindow);
-
-    renderer->AddActor(actor);
-    // renderer->SetBackground(.2, .3, .4);
-
-
-    renderWindow->Render();
-    renderWindowInteractor->Start();
-
-
-
-/*/
 
 
   MeshType::FrontIterator it= mesh->BeginFront();
-itk::Vector<double, 3> v1,v2;
+  MeshType::FrontIterator itC= mesh->BeginFront();
+  MeshType::PointType p1, p2,p3;
+  PointType pm12, pm23, pm31;
+  idP idP1,idP2,idP3;
 
-  for(; it != mesh->EndFront(); it++) {
-    
-    //cout<<"------------------------------------"<<endl;
-    //cout << "origin " << it.Value()->GetOrigin() <<": ";
-    MeshType::PointType p = mesh->GetPoint( it.Value()->GetOrigin() );
-    v1 = p.GetVectorFromOrigin();
-    //cout << v1[0] << " " << v1[1] << " " << v1[2] << endl;
+  itk::Vector<double, 3> v1,v2, v3, aux;
+  v1[0] = -1;
+  v1[1] = -1;
+  v1[2] = -1;
 
-    MeshType::CellIdentifier id = it.Value()->GetLeft();
-
-
-    //cout << " dest " << it.Value()->GetDestination() << endl;
-    p = mesh->GetPoint( it.Value()->GetDestination() );
-    v2 = p.GetVectorFromOrigin();
-    //cout << v2[0] << " " << v2[1] << " " << v2[2] << endl;
-
-    //Encontrar el punto medio y añadirlo al mesh
-    PointType pm;
-    pm[0]=(v1[0]+v2[0])/2;
-    pm[1]=(v1[1]+v2[1])/2;
-    pm[2]=0;
-    MeshType::PointIdentifier idPm = mesh->AddPoint(pm);
-
-    it.Value()->Splice(it.Value()->GetLnext());
-    
-    QEType* nuevo = mesh->AddEdge( idPm, it.Value()->GetDestination() ); 
-
-    it.Value()->GetSym()->Splice( nuevo );   
-
-  cout<< " id face " << id << endl;
-    //cout<<"------------------------------------"<<endl;
+  std::vector<std::vector<   PointType > >puntos;
+  for (int i=0; i< mesh->GetNumberOfPoints();i++ )
+  {
+      puntos.push_back( vector<PointType>(mesh->GetNumberOfPoints()) );
+      for(int j = 0; j < mesh->GetNumberOfPoints(); j++){
+    //      std::cout << "i j " << i << " " << j << std::endl;
+          puntos[i][j] = -1;
+      }
 
   }
 
-  //-----------------------------------------------------------------------------  
+  for(; it != mesh->EndFront(); it++) {
+
+    //cout<<"------------------------------------"<<endl;
+    //cout << "origin " << it.Value()->GetOrigin() <<": ";
+
+    p1 = mesh->GetPoint( it.Value()->GetOrigin() );
+    v1 = p.GetVectorFromOrigin();
+    idP1 =it.Value()->GetOrigin() ;
+
+    p2 = mesh->GetPoint( it.Value()->GetDestination() );
+    idP2 =it.Value()->GetDestination();
+
+    v2 = p2.GetVectorFromOrigin();
+  //  QEType* nuevo = it.Value()->GetLnext();
+    p3 = mesh->GetPoint(it.Value()->GetLnext()->GetDestination());
+    v3 = p3.GetVectorFromOrigin();
+    idP3 = it.Value()->GetLnext()->GetDestination();
+
+    //Encontrar el punto medio y añadirlo al mesh
+    if (puntos[idP1][idP2]==-1)
+    {
+      pm12[0]=(v1[0]+v2[0])/2;
+      pm12[1]=(v1[1]+v2[1])/2;
+      pm12[2]=0;
+      puntos[idP1][idP2]= pm12;
+      copy->AddPoint(pm12);
+    }
+    else
+      pm12 = puntos[idP1][idP2];
+  //  MeshType::PointIdentifier idPm = copy->AddPoint(pm);
+
+    if (puntos[idP2][idP3]==-1)
+    {
+      pm23[0]=(v2[0]+v3[0])/2;
+      pm23[1]=(v2[1]+v3[1])/2;
+      pm23[2]=0;
+      puntos[idP2][idP3] = pm23;
+  copy->AddPoint(pm23);
+    }
+    else
+       pm23 = puntos[idP2][idP3];
+    if(puntos[idP3][idP1]==-1)
+    {
+      pm31[0]=(v3[0]+v1[0])/2;
+      pm31[1]=(v3[1]+v1[1])/2;
+      pm31[2]=0;
+      puntos[idP3][idP1] = pm31;
+      copy->AddPoint(pm31);
+    }
+    else
+      pm31 = puntos[idP3][idP1];
+
+   copy->AddFaceTriangle( idP1, idP2,  idP3 );
+  }
+
+  //-----------------------------------------------------------------------------
 
   return EXIT_SUCCESS;
 }
-
-
